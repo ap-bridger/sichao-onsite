@@ -4,7 +4,7 @@ from langgraph.prebuilt import create_react_agent
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-model = ChatAnthropic(model="claude-3-haiku-20240307")
+model = ChatAnthropic(model="claude-haiku-4-5-20251001")
 tools = []
 graph = create_react_agent(model, tools)
 

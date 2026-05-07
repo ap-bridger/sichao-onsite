@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-type Option = { id: number; name: string };
+type Option = { id: string; name: string };
 
 type Props = {
   value: string;

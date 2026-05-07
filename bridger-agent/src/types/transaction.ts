@@ -1,23 +1,17 @@
-export type Category = {
-  id: number
-  name: string
-}
-
-export type Vendor = {
-  id: number
-  name: string
-  lastUsed: number
-}
+export type Category = { id: string; name: string }
+export type Vendor = { id: string; name: string; lastTimeUsed: string | null }
+export type CategoryAllocation = { categoryId: string; amountCents: number }
 
 export type Transaction = {
-  id: number
-  date: number
-  amount: number
+  id: string
+  bankAccountId: string
+  date: string
+  amountCents: number
   description: string
-  from: Vendor
-  predictedCategory: Category
-  actualCategory: Category
-  bankAcct: number
-  status: 'Pending' | 'Excluded' | 'Posted'
-  requireInfo: boolean
+  predictedVendorId: string | null
+  actualVendorId: string | null
+  predictedCategory: CategoryAllocation[]
+  actualCategory: CategoryAllocation[] | null
+  status: 'Pending' | 'Posted' | 'Excluded'
+  needsInfo: boolean
 }
