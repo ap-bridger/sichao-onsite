@@ -3,8 +3,22 @@ import type { Category, Prisma, Transaction, Vendor } from "@prisma/client";
 
 export type { Category, Transaction, Vendor };
 
+export type CategoryAllocation = {
+  categoryId: string;
+  amountCents: number;
+};
+
 export type TransactionSortBy = "DESCRIPTION" | "AMOUNT" | "DATE";
 export type SortOrder = "ASC" | "DESC";
+
+export const transactionFieldResolvers = {
+  predictedCategory: (parent: Transaction): CategoryAllocation[] =>
+    JSON.parse(parent.predictedCategory) as CategoryAllocation[],
+  actualCategory: (parent: Transaction): CategoryAllocation[] | null =>
+    parent.actualCategory === null
+      ? null
+      : (JSON.parse(parent.actualCategory) as CategoryAllocation[]),
+};
 
 const buildTransactionOrderBy = (
   sortBy: TransactionSortBy,
@@ -70,7 +84,7 @@ export const updateTransaction = async (
     id: string;
     input: {
       actualVendorId?: string | null;
-      actualCategory?: string | null;
+      actualCategory?: CategoryAllocation[] | null;
     };
   }
 ): Promise<Transaction> => {
@@ -80,7 +94,8 @@ export const updateTransaction = async (
     data.actualVendorId = input.actualVendorId;
   }
   if (input.actualCategory !== undefined) {
-    data.actualCategory = input.actualCategory;
+    data.actualCategory =
+      input.actualCategory === null ? null : JSON.stringify(input.actualCategory);
   }
   return prisma.transaction.update({ where: { id }, data });
 };

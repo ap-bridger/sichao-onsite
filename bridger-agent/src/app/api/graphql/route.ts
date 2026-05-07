@@ -5,6 +5,7 @@ import {
   getAllTransactions,
   getCategoryList,
   getVendorList,
+  transactionFieldResolvers,
   updateTransaction,
 } from "@/server/modules/transactions/api";
 import { createSchema, createYoga } from "graphql-yoga";
@@ -36,6 +37,11 @@ const { handleRequest } = createYoga<{
         name: String!
       }
 
+      type CategoryAllocation {
+        categoryId: String!
+        amountCents: Int!
+      }
+
       type Transaction {
         id: ID!
         bankAccountId: String!
@@ -43,11 +49,11 @@ const { handleRequest } = createYoga<{
         amountCents: Int!
         description: String!
         predictedVendorId: String
-        predictedCategory: String!
+        predictedCategory: [CategoryAllocation!]!
         status: String!
         needsInfo: Boolean!
         actualVendorId: String
-        actualCategory: String
+        actualCategory: [CategoryAllocation!]
       }
 
       type Query {
@@ -62,9 +68,14 @@ const { handleRequest } = createYoga<{
         getVendorList: [Vendor!]!
       }
 
+      input CategoryAllocationInput {
+        categoryId: String!
+        amountCents: Int!
+      }
+
       input UpdateTransactionInput {
         actualVendorId: String
-        actualCategory: String
+        actualCategory: [CategoryAllocationInput!]
       }
 
       type Mutation {
@@ -85,6 +96,7 @@ const { handleRequest } = createYoga<{
         addCategory,
         updateTransaction,
       },
+      Transaction: transactionFieldResolvers,
     },
   }),
 
