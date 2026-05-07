@@ -1,18 +1,13 @@
 "use client";
 
-import { apolloClient } from "@/client/graphql/apollo-client";
-import { GreetButton } from "@/components/GreetButton/GreetButton";
-import { ApolloProvider } from "@apollo/client";
+import { TransactionTabs } from "@/components/TransactionTabs/TransactionTabs";
+import { SAMPLE_TRANSACTIONS } from "@/components/TransactionTable/sample-data";
 
 export default function Home() {
   return (
-    <ApolloProvider client={apolloClient}>
-      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-          <h1>Welcome to the Greeter App</h1>
-          <GreetButton />
-        </main>
-      </div>
-    </ApolloProvider>
+    <main className="p-8">
+      <h1 className="text-2xl font-semibold mb-6">Transactions</h1>
+      <TransactionTabs transactions={SAMPLE_TRANSACTIONS} />
+    </main>
   );
 }
