@@ -10,3 +10,43 @@ datasource db {
 model Greet {
   id Int @id @default(autoincrement())
 }
+
+model Category {
+  id   String @id
+  name String @unique
+
+  actualTransactions Transaction[]
+}
+
+model Vendor {
+  id           String    @id
+  name         String    @unique
+  lastTimeUsed DateTime?
+
+  predictedTransactions Transaction[] @relation("PredictedVendor")
+  actualTransactions    Transaction[] @relation("ActualVendor")
+}
+
+model Transaction {
+  id            String   @id
+  bankAccountId String
+  date          DateTime
+  amountCents   Int
+  description   String
+
+  predictedVendorId String?
+  predictedVendor   Vendor? @relation("PredictedVendor", fields: [predictedVendorId], references: [id])
+
+  // JSON-encoded list of { categoryId: string, amountCents: int }
+  predictedCategory String
+
+  // One of: PENDING | POSTED | EXCLUDED
+  status    String
+  needsInfo Boolean
+
+  actualVendorId String?
+  actualVendor   Vendor? @relation("ActualVendor", fields: [actualVendorId], references: [id])
+
+  actualCategoryId String?
+  actualCategory   Category? @relation(fields: [actualCategoryId], references: [id])
+}
