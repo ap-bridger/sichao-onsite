@@ -70,7 +70,7 @@ export const updateTransaction = async (
     id: string;
     input: {
       actualVendorId?: string | null;
-      actualCategoryId?: string | null;
+      actualCategory?: string | null;
     };
   }
 ): Promise<Transaction> => {
@@ -79,8 +79,8 @@ export const updateTransaction = async (
   if (input.actualVendorId !== undefined) {
     data.actualVendorId = input.actualVendorId;
   }
-  if (input.actualCategoryId !== undefined) {
-    data.actualCategoryId = input.actualCategoryId;
+  if (input.actualCategory !== undefined) {
+    data.actualCategory = input.actualCategory;
   }
   return prisma.transaction.update({ where: { id }, data });
 };

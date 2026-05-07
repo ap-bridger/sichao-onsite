@@ -9,7 +9,9 @@ import {
 } from "@/server/modules/transactions/api";
 import { createSchema, createYoga } from "graphql-yoga";
 
-const { handleRequest } = createYoga({
+const { handleRequest } = createYoga<{
+  params: Promise<Record<string, string>>;
+}>({
   schema: createSchema({
     typeDefs: /* GraphQL */ `
       enum TransactionSortBy {
@@ -45,7 +47,7 @@ const { handleRequest } = createYoga({
         status: String!
         needsInfo: Boolean!
         actualVendorId: String
-        actualCategoryId: String
+        actualCategory: String
       }
 
       type Query {
@@ -62,7 +64,7 @@ const { handleRequest } = createYoga({
 
       input UpdateTransactionInput {
         actualVendorId: String
-        actualCategoryId: String
+        actualCategory: String
       }
 
       type Mutation {
