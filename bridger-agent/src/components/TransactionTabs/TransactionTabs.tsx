@@ -3,9 +3,12 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { Transaction, Vendor, Category, CategoryAllocation } from "@/types/transaction";
-import { TransactionTable } from "@/components/TransactionTable/TransactionTable";
+import { TransactionTable, SortKey, SortDirection } from "@/components/TransactionTable/TransactionTable";
+import { BulkEditModal } from "@/components/BulkEditModal/BulkEditModal";
+import { Pagination } from "@/components/Pagination/Pagination";
 import {
   GET_ALL_TRANSACTIONS,
+  GET_DISTINCT_BANK_ACCOUNT_IDS,
   GET_VENDOR_LIST,
   GET_CATEGORY_LIST,
   ADD_VENDOR,
@@ -46,30 +49,49 @@ function mapTransaction(t: any): Transaction {
 }
 
 export function TransactionTabs() {
-  const { data: txData, loading: txLoading, error: txError } = useQuery(GET_ALL_TRANSACTIONS);
+  const [activeAcct, setActiveAcct] = useState<string | null>(null);
+  const [activeStatus, setActiveStatus] = useState<Status>("Pending");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [localPatches, setLocalPatches] = useState<Record<string, Partial<Transaction>>>({});
+  const [collapsingIds, setCollapsingIds] = useState<Set<string>>(new Set());
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [sortMap, setSortMap] = useState<Record<string, { sortKey: SortKey; sortDirection: SortDirection }>>({});
+
+  const { data: acctData, loading: acctLoading } = useQuery(GET_DISTINCT_BANK_ACCOUNT_IDS);
+  const accounts: string[] = acctData?.getDistinctBankAccountIds ?? [];
+  const currentAcct = activeAcct ?? accounts[0] ?? null;
+
+  const tabKey = `${currentAcct}:${activeStatus}`;
+  const { sortKey = 'date', sortDirection = 'desc' } = sortMap[tabKey] ?? {};
+  const serverSortKey = sortKey.toUpperCase();
+
+  const txVariables = useMemo(() => ({
+    page,
+    pageSize,
+    sortBy: serverSortKey,
+    sortOrder: sortDirection.toUpperCase(),
+    bankAccountId: currentAcct ?? undefined,
+    status: activeStatus.toUpperCase(),
+  }), [page, pageSize, serverSortKey, sortDirection, currentAcct, activeStatus]);
+
+  const { data: txData, loading: txLoading, error: txError } = useQuery(GET_ALL_TRANSACTIONS, {
+    variables: txVariables,
+    skip: !currentAcct,
+    fetchPolicy: "cache-and-network",
+  });
+
   const { data: vendorData } = useQuery(GET_VENDOR_LIST);
   const { data: catData } = useQuery(GET_CATEGORY_LIST);
 
-  const [txList, setTxList] = useState<Transaction[] | null>(null);
   const [vendorList, setVendorList] = useState<Vendor[] | null>(null);
   const [categoryList, setCategoryList] = useState<Category[] | null>(null);
 
   const [addVendorMutation] = useMutation(ADD_VENDOR);
   const [addCategoryMutation] = useMutation(ADD_CATEGORY);
   const [updateTxMutation] = useMutation(UPDATE_TRANSACTION);
-
-  const transactions: Transaction[] = useMemo(() => {
-    if (txList !== null) return txList;
-    if (!txData?.getAllTransactions) return [];
-    const mapped = txData.getAllTransactions.map(mapTransaction);
-    return mapped;
-  }, [txData, txList]);
-
-  useMemo(() => {
-    if (txList === null && txData?.getAllTransactions) {
-      setTxList(txData.getAllTransactions.map(mapTransaction));
-    }
-  }, [txData, txList]);
 
   const vendors: Vendor[] = useMemo(() => {
     if (vendorList !== null) return vendorList;
@@ -93,26 +115,51 @@ export function TransactionTabs() {
     }
   }, [catData, categoryList]);
 
-  const accounts = useMemo(() => {
-    const seen = new Set<string>();
-    const ordered: string[] = [];
-    for (const tx of transactions) {
-      if (!seen.has(tx.bankAccountId)) {
-        seen.add(tx.bankAccountId);
-        ordered.push(tx.bankAccountId);
-      }
-    }
-    return ordered;
-  }, [transactions]);
+  const rawItems: Transaction[] = useMemo(() => {
+    return (txData?.getAllTransactions?.items ?? []).map(mapTransaction);
+  }, [txData]);
 
-  const [activeAcct, setActiveAcct] = useState<string | null>(null);
-  const [activeStatus, setActiveStatus] = useState<Status>("Pending");
+  const total: number = txData?.getAllTransactions?.total ?? 0;
 
-  const currentAcct = activeAcct ?? accounts[0] ?? null;
+  const transactions: Transaction[] = useMemo(() => {
+    return rawItems
+      .filter((tx) => !removedIds.has(tx.id))
+      .map((tx) => localPatches[tx.id] ? { ...tx, ...localPatches[tx.id] } : tx);
+  }, [rawItems, localPatches, removedIds]);
 
   function switchTab(acct: string) {
     setActiveAcct(acct);
     setActiveStatus("Pending");
+    setPage(1);
+    setSelectedIds(new Set());
+  }
+
+  function switchStatus(status: Status) {
+    setActiveStatus(status);
+    setPage(1);
+    setSelectedIds(new Set());
+  }
+
+  function handleSortChange(key: SortKey) {
+    setSortMap((prev) => ({
+      ...prev,
+      [tabKey]: {
+        sortKey: key,
+        sortDirection: key === sortKey ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc',
+      },
+    }));
+    setPage(1);
+  }
+
+  function handlePageChange(p: number) {
+    setPage(p);
+    setSelectedIds(new Set());
+  }
+
+  function handlePageSizeChange(size: number) {
+    setPageSize(size);
+    setPage(1);
+    setSelectedIds(new Set());
   }
 
   async function addVendor(name: string): Promise<Vendor> {
@@ -129,22 +176,66 @@ export function TransactionTabs() {
     return category;
   }
 
-  function handleUpdate(id: string, patch: { actualVendorId?: string; actualCategory?: CategoryAllocation[] }) {
-    setTxList((prev) =>
-      (prev ?? transactions).map((tx) => (tx.id === id ? { ...tx, ...patch } : tx))
-    );
+  function handleBulkUpdate(patch: { actualVendorId?: string; actualCategory?: CategoryAllocation[] }) {
+    selectedIds.forEach((id) => {
+      const tx = transactions.find((t) => t.id === id);
+      if (!tx) return;
+      const resolvedPatch = { ...patch };
+      if (patch.actualCategory) {
+        resolvedPatch.actualCategory = [{ categoryId: patch.actualCategory[0].categoryId, amountCents: Math.abs(tx.amountCents) }];
+      }
+      handleUpdate(id, resolvedPatch);
+    });
+    setSelectedIds(new Set());
+    setBulkEditOpen(false);
+  }
+
+  function handleBulkApplyAndPost(patch: { actualVendorId?: string; actualCategory?: CategoryAllocation[] }) {
+    selectedIds.forEach((id) => {
+      const tx = transactions.find((t) => t.id === id);
+      if (!tx) return;
+      const resolvedPatch = { ...patch };
+      if (patch.actualCategory) {
+        resolvedPatch.actualCategory = [{ categoryId: patch.actualCategory[0].categoryId, amountCents: Math.abs(tx.amountCents) }];
+      }
+      handleUpdate(id, resolvedPatch);
+      handleUpdate(id, { status: 'POSTED' });
+    });
+    setSelectedIds(new Set());
+    setBulkEditOpen(false);
+  }
+
+  function handleBulkPost() {
+    selectedIds.forEach((id) => handleUpdate(id, { status: 'POSTED' }));
+    setSelectedIds(new Set());
+    setBulkEditOpen(false);
+  }
+
+  function handleBulkExclude() {
+    selectedIds.forEach((id) => handleUpdate(id, { status: 'EXCLUDED' }));
+    setSelectedIds(new Set());
+    setBulkEditOpen(false);
+  }
+
+  function handleUpdate(id: string, patch: { actualVendorId?: string; actualCategory?: CategoryAllocation[]; needsInfo?: boolean; status?: string }) {
+    if (patch.status !== undefined) {
+      setCollapsingIds((prev) => new Set([...prev, id]));
+      setTimeout(() => {
+        setRemovedIds((prev) => new Set([...prev, id]));
+        setCollapsingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      }, 350);
+    } else {
+      setLocalPatches((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...patch } }));
+    }
     const input: Record<string, unknown> = {};
     if (patch.actualVendorId !== undefined) input.actualVendorId = patch.actualVendorId;
     if (patch.actualCategory !== undefined) input.actualCategory = patch.actualCategory;
+    if (patch.needsInfo !== undefined) input.needsInfo = patch.needsInfo;
+    if (patch.status !== undefined) input.status = patch.status;
     updateTxMutation({ variables: { id, input } }).catch(console.error);
   }
 
-  const filtered = useMemo(
-    () => transactions.filter((tx) => tx.bankAccountId === currentAcct && tx.status === activeStatus),
-    [transactions, currentAcct, activeStatus]
-  );
-
-  if (txLoading) return <p className="text-sm text-gray-500">Loading transactions…</p>;
+  if (acctLoading) return <p className="text-sm text-gray-500">Loading…</p>;
   if (txError) return <p className="text-sm text-red-500">Error: {txError.message}</p>;
 
   return (
@@ -155,6 +246,7 @@ export function TransactionTabs() {
           <button
             key={acct}
             onClick={() => switchTab(acct)}
+            title={acct}
             className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors ${
               acct === currentAcct
                 ? "bg-white border border-b-white border-gray-200 text-blue-600 -mb-px"
@@ -174,7 +266,7 @@ export function TransactionTabs() {
           return (
             <button
               key={status}
-              onClick={() => setActiveStatus(status)}
+              onClick={() => switchStatus(status)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 isActive ? `${styles.active} ring-1` : styles.idle
               }`}
@@ -185,14 +277,58 @@ export function TransactionTabs() {
         })}
       </div>
 
+      {/* Bulk edit button — always reserves space */}
+      <div className="flex justify-end mb-2 h-8">
+        {selectedIds.size > 1 && (
+          <button
+            onClick={() => setBulkEditOpen(true)}
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Bulk Edit ({selectedIds.size})
+          </button>
+        )}
+      </div>
+
       <TransactionTable
-        transactions={filtered}
+        transactions={transactions}
         vendorList={vendors}
         categoryList={categories}
         onUpdate={handleUpdate}
         onAddVendor={addVendor}
         onAddCategory={addCategory}
+        selectedIds={activeStatus === "Pending" ? selectedIds : undefined}
+        onSelectionChange={activeStatus === "Pending" ? setSelectedIds : undefined}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={handleSortChange}
+        showActions={activeStatus === "Pending"}
+        collapsingIds={collapsingIds}
       />
+
+      {txLoading && (
+        <p className="text-sm text-gray-400 mt-2">Loading…</p>
+      )}
+
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
+
+      {bulkEditOpen && (
+        <BulkEditModal
+          selectedTransactions={transactions.filter((tx) => selectedIds.has(tx.id))}
+          vendorList={vendors}
+          categoryList={categories}
+          onSubmit={handleBulkUpdate}
+          onApplyAndPost={handleBulkApplyAndPost}
+          onPost={handleBulkPost}
+          onExclude={handleBulkExclude}
+          onClose={() => setBulkEditOpen(false)}
+        />
+      )}
     </div>
   );
 }

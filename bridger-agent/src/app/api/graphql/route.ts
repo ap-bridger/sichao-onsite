@@ -4,6 +4,7 @@ import {
   addVendor,
   getAllTransactions,
   getCategoryList,
+  getDistinctBankAccountIds,
   getVendorList,
   transactionFieldResolvers,
   updateTransaction,
@@ -19,6 +20,8 @@ const { handleRequest } = createYoga<{
         DESCRIPTION
         AMOUNT
         DATE
+        VENDOR
+        CATEGORY
       }
 
       enum SortOrder {
@@ -56,6 +59,11 @@ const { handleRequest } = createYoga<{
         actualCategory: [CategoryAllocation!]
       }
 
+      type TransactionPage {
+        items: [Transaction!]!
+        total: Int!
+      }
+
       type Query {
         greetings: String
         getAllTransactions(
@@ -63,7 +71,10 @@ const { handleRequest } = createYoga<{
           pageSize: Int!
           sortBy: TransactionSortBy!
           sortOrder: SortOrder!
-        ): [Transaction!]!
+          bankAccountId: String
+          status: String
+        ): TransactionPage!
+        getDistinctBankAccountIds: [String!]!
         getCategoryList: [Category!]!
         getVendorList: [Vendor!]!
       }
@@ -76,6 +87,8 @@ const { handleRequest } = createYoga<{
       input UpdateTransactionInput {
         actualVendorId: String
         actualCategory: [CategoryAllocationInput!]
+        needsInfo: Boolean
+        status: String
       }
 
       type Mutation {
@@ -88,6 +101,7 @@ const { handleRequest } = createYoga<{
       Query: {
         greetings,
         getAllTransactions,
+        getDistinctBankAccountIds,
         getCategoryList,
         getVendorList,
       },

@@ -10,9 +10,10 @@ type Props = {
   options: Option[];
   onChange: (option: Option) => void;
   onAddNew: (name: string) => Promise<Option>;
+  onSplit?: () => void;
 };
 
-export function EditableDropdown({ value, options, onChange, onAddNew }: Props) {
+export function EditableDropdown({ value, options, onChange, onAddNew, onSplit }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
@@ -30,8 +31,20 @@ export function EditableDropdown({ value, options, onChange, onAddNew }: Props) 
         setQuery("");
       }
     }
-    if (open) document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("keydown", onKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open]);
 
   function openMenu() {
@@ -85,6 +98,16 @@ export function EditableDropdown({ value, options, onChange, onAddNew }: Props) 
           style={{ position: "fixed", top: menuStyle.top, left: menuStyle.left, zIndex: 9999 }}
           className="w-52 bg-white border border-gray-200 rounded-lg shadow-lg"
         >
+          {onSplit && (
+            <div className="px-2 pt-2 pb-1 border-b border-gray-100">
+              <button
+                onClick={() => { onSplit(); setOpen(false); setQuery(""); }}
+                className="w-full text-left px-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              >
+                Split
+              </button>
+            </div>
+          )}
           <div className="p-2 border-b border-gray-100">
             <input
               autoFocus

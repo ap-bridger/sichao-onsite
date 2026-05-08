@@ -48,6 +48,7 @@ type TxnSpec = {
   predictedVendor: string | null;
   predictedSplits: { category: string; amountCents: number }[];
   needsInfo: boolean;
+  status?: "PENDING" | "POSTED" | "EXCLUDED";
 };
 
 const TRANSACTIONS: TxnSpec[] = [
@@ -77,6 +78,46 @@ const TRANSACTIONS: TxnSpec[] = [
   // Needs info
   { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 13, amountCents: 350000, description: "WIRE XFER OUT TO 1234567890", predictedVendor: null, predictedSplits: [], needsInfo: true },
   { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 14, amountCents: 4999, description: "DOORDASH*MERCHANT", predictedVendor: "DoorDash", predictedSplits: [{ category: "Meals & Entertainment", amountCents: 4999 }], needsInfo: true },
+
+  // Additional PENDING — no predictions
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 20, amountCents: 7800,   description: "POS PURCHASE 8821 MAIN ST",      predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 21, amountCents: 14500,  description: "ACH DEBIT PAYROLL SVC",          predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 22, amountCents: 3200,   description: "TAP TO PAY UNIDENTIFIED",        predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 23, amountCents: 99900,  description: "INTL WIRE REF#887766",           predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: true,  status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 24, amountCents: 5500,   description: "CHECKCARD 0312 MISC VENDOR",     predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 25, amountCents: 18000,  description: "RECURRING PMT REF#44512",        predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 26, amountCents: 62500,  description: "VENDOR PMT BATCH 20240501",      predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: true,  status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 27, amountCents: 11050,  description: "SQ *UNNAMED SHOP",               predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 28, amountCents: 4250,   description: "ONLINE PMT 9944 UNKNOWN",        predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+
+  // PENDING — full predictions (vendor + category set, ready to post)
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 29, amountCents: 5999,   description: "STARBUCKS #42 DOWNTOWN",         predictedVendor: "Starbucks",    predictedSplits: [{ category: "Meals & Entertainment", amountCents: 5999 }],                                             needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 30, amountCents: 19900,  description: "NOTION LABS MONTHLY",            predictedVendor: "Notion",       predictedSplits: [{ category: "Software & Subscriptions", amountCents: 19900 }],                                         needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 31, amountCents: 32100,  description: "AMAZON.COM*DEF456",              predictedVendor: "Amazon",       predictedSplits: [{ category: "Office Supplies", amountCents: 32100 }],                                                  needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 32, amountCents: 87500,  description: "ADOBE CREATIVE CLD",             predictedVendor: "Adobe",        predictedSplits: [{ category: "Software & Subscriptions", amountCents: 87500 }],                                         needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 33, amountCents: 12300,  description: "UBER EATS ORDER 77",             predictedVendor: "Uber",         predictedSplits: [{ category: "Meals & Entertainment", amountCents: 12300 }],                                            needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 34, amountCents: 450000, description: "AWS INVOICE MAY",                predictedVendor: "AWS",          predictedSplits: [{ category: "Software & Subscriptions", amountCents: 450000 }],                                        needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 35, amountCents: 27500,  description: "GITHUB.COM TEAM PLAN",           predictedVendor: "GitHub",       predictedSplits: [{ category: "Software & Subscriptions", amountCents: 27500 }],                                        needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 36, amountCents: 14999,  description: "LINEAR APP ANNUAL",              predictedVendor: "Linear",       predictedSplits: [{ category: "Software & Subscriptions", amountCents: 14999 }],                                        needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 37, amountCents: 75000,  description: "DOORDASH*CATERING ORDER",        predictedVendor: "DoorDash",     predictedSplits: [{ category: "Meals & Entertainment", amountCents: 75000 }],                                           needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 38, amountCents: 189900, description: "DELTA 0071234567",               predictedVendor: "Delta Airlines",predictedSplits: [{ category: "Travel", amountCents: 189900 }],                                                        needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 39, amountCents: 43200,  description: "MARRIOTT BOSTON COPLEY",         predictedVendor: "Marriott",     predictedSplits: [{ category: "Travel", amountCents: 43200 }],                                                          needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 40, amountCents: 8800,   description: "SHELL OIL 99887",                predictedVendor: "Shell",        predictedSplits: [{ category: "Travel", amountCents: 8800 }],                                                           needsInfo: false, status: "PENDING" },
+
+  // PENDING — split predictions
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 41, amountCents: 95000,  description: "COSTCO WHSE #88 BUSINESS",       predictedVendor: "Costco",       predictedSplits: [{ category: "Office Supplies", amountCents: 45000 }, { category: "Equipment", amountCents: 50000 }],  needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 42, amountCents: 120000, description: "AMAZON.COM*GHI789 BULK",         predictedVendor: "Amazon",       predictedSplits: [{ category: "Equipment", amountCents: 80000 }, { category: "Office Supplies", amountCents: 40000 }],  needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 43, amountCents: 55000,  description: "MARRIOTT SFO AIRPORT",           predictedVendor: "Marriott",     predictedSplits: [{ category: "Travel", amountCents: 40000 }, { category: "Meals & Entertainment", amountCents: 15000 }],needsInfo: false, status: "PENDING" },
+
+  // PENDING — vendor predicted but no category
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 44, amountCents: 6700,   description: "SLACK SUBSCR ANNUAL",            predictedVendor: "Slack",        predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 45, amountCents: 22200,  description: "STRIPE FEES APR",                predictedVendor: "Stripe",       predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 46, amountCents: 9100,   description: "UBER TRIP AIRPORT RUN",          predictedVendor: "Uber",         predictedSplits: [],                                                                                                      needsInfo: false, status: "PENDING" },
+
+  // PENDING — needsInfo with some predictions
+  { bankAccountId: BANK_ACCOUNTS[0], daysAgo: 47, amountCents: 500000, description: "WIRE OUT REF#112233",            predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: true,  status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[1], daysAgo: 48, amountCents: 18500,  description: "DOORDASH*UNKNOWN MERCHANT",      predictedVendor: "DoorDash",     predictedSplits: [{ category: "Meals & Entertainment", amountCents: 18500 }],                                            needsInfo: true,  status: "PENDING" },
+  { bankAccountId: BANK_ACCOUNTS[2], daysAgo: 49, amountCents: 250000, description: "ACH OUT BATCH#556677",           predictedVendor: null,           predictedSplits: [],                                                                                                      needsInfo: true,  status: "PENDING" },
 ];
 
 async function main() {
@@ -131,7 +172,7 @@ async function main() {
         description: t.description,
         predictedVendorId,
         predictedCategory: JSON.stringify(predictedCategory),
-        status: "PENDING",
+        status: t.status ?? (t.predictedVendor && t.predictedSplits.length > 0 ? "POSTED" : "PENDING"),
         needsInfo: t.needsInfo,
       },
     });

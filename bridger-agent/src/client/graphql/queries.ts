@@ -1,20 +1,29 @@
 import { gql } from "@apollo/client";
 
 export const GET_ALL_TRANSACTIONS = gql`
-  query GetAllTransactions {
-    getAllTransactions(page: 1, pageSize: 100, sortBy: DATE, sortOrder: DESC) {
-      id
-      bankAccountId
-      date
-      amountCents
-      description
-      predictedVendorId
-      predictedCategory { categoryId amountCents }
-      actualVendorId
-      actualCategory { categoryId amountCents }
-      status
-      needsInfo
+  query GetAllTransactions($page: Int!, $pageSize: Int!, $sortBy: TransactionSortBy!, $sortOrder: SortOrder!, $bankAccountId: String, $status: String) {
+    getAllTransactions(page: $page, pageSize: $pageSize, sortBy: $sortBy, sortOrder: $sortOrder, bankAccountId: $bankAccountId, status: $status) {
+      items {
+        id
+        bankAccountId
+        date
+        amountCents
+        description
+        predictedVendorId
+        predictedCategory { categoryId amountCents }
+        actualVendorId
+        actualCategory { categoryId amountCents }
+        status
+        needsInfo
+      }
+      total
     }
+  }
+`;
+
+export const GET_DISTINCT_BANK_ACCOUNT_IDS = gql`
+  query GetDistinctBankAccountIds {
+    getDistinctBankAccountIds
   }
 `;
 
