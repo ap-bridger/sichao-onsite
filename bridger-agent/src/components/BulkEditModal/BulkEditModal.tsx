@@ -120,8 +120,8 @@ export function BulkEditModal({ selectedTransactions, vendorList, categoryList, 
         </div>
 
         <div className="border-t border-gray-200 mt-5 pt-4">
-          <p className="text-xs text-gray-500 mb-3">Mark selected as</p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-gray-600">Mark {selectedCount} selected transactions as</span>
             <div className="relative group inline-block">
               <button
                 disabled={!canPost}
@@ -132,7 +132,7 @@ export function BulkEditModal({ selectedTransactions, vendorList, categoryList, 
                     : 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed'
                 }`}
               >
-                Post {selectedCount} transactions
+                Posted
               </button>
               {!canPost && (
                 <div className="absolute bottom-full left-0 mb-1.5 whitespace-nowrap bg-gray-800 text-white text-xs rounded px-2 py-1 invisible group-hover:visible z-20 pointer-events-none">
@@ -144,7 +144,7 @@ export function BulkEditModal({ selectedTransactions, vendorList, categoryList, 
               onClick={onExclude}
               className="px-3 py-1.5 text-sm font-medium rounded border border-gray-300 text-gray-600 bg-white hover:bg-gray-100 transition-colors"
             >
-              Exclude {selectedCount} transactions
+              Excluded
             </button>
           </div>
         </div>
