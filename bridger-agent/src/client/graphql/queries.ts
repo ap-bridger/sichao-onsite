@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const GET_ALL_TRANSACTIONS = gql`
-  query GetAllTransactions($page: Int!, $pageSize: Int!, $sortBy: TransactionSortBy!, $sortOrder: SortOrder!, $bankAccountId: String, $status: String) {
-    getAllTransactions(page: $page, pageSize: $pageSize, sortBy: $sortBy, sortOrder: $sortOrder, bankAccountId: $bankAccountId, status: $status) {
+  query GetAllTransactions($page: Int!, $pageSize: Int!, $sortBy: TransactionSortBy!, $sortOrder: SortOrder!, $bankAccountId: String, $status: String, $description: String) {
+    getAllTransactions(page: $page, pageSize: $pageSize, sortBy: $sortBy, sortOrder: $sortOrder, bankAccountId: $bankAccountId, status: $status, description: $description) {
       items {
         id
         bankAccountId

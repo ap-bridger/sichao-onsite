@@ -41,7 +41,8 @@ async function getAllTransactionsSortedByCategory(
   pageSize: number,
   direction: "asc" | "desc",
   bankAccountId?: string,
-  status?: string
+  status?: string,
+  description?: string
 ): Promise<{ items: Transaction[]; total: number }> {
   const conditions: string[] = [];
   const filterParams: unknown[] = [];
@@ -52,6 +53,10 @@ async function getAllTransactionsSortedByCategory(
   if (status) {
     conditions.push("t.status = ?");
     filterParams.push(status);
+  }
+  if (description) {
+    conditions.push("t.description LIKE ?");
+    filterParams.push(`%${description}%`);
   }
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
   const orderDir = direction === "asc" ? "ASC" : "DESC";
@@ -87,18 +92,20 @@ export const getAllTransactions = async (
     sortOrder: SortOrder;
     bankAccountId?: string;
     status?: string;
+    description?: string;
   }
 ): Promise<{ items: Transaction[]; total: number }> => {
-  const { page, pageSize, sortBy, sortOrder, bankAccountId, status } = args;
+  const { page, pageSize, sortBy, sortOrder, bankAccountId, status, description } = args;
   const direction = sortOrder === "ASC" ? "asc" : "desc";
 
   if (sortBy === "CATEGORY") {
-    return getAllTransactionsSortedByCategory(page, pageSize, direction, bankAccountId, status);
+    return getAllTransactionsSortedByCategory(page, pageSize, direction, bankAccountId, status, description);
   }
 
   const where: Prisma.TransactionWhereInput = {};
   if (bankAccountId) where.bankAccountId = bankAccountId;
   if (status) where.status = status;
+  if (description) where.description = { contains: description };
   const [items, total] = await prisma.$transaction([
     prisma.transaction.findMany({
       where,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { Transaction, Vendor, Category, CategoryAllocation } from "@/types/transaction";
 import { TransactionTable, SortKey, SortDirection } from "@/components/TransactionTable/TransactionTable";
@@ -59,6 +59,13 @@ export function TransactionTabs() {
   const [collapsingIds, setCollapsingIds] = useState<Set<string>>(new Set());
   const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
   const [sortMap, setSortMap] = useState<Record<string, { sortKey: SortKey; sortDirection: SortDirection }>>({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const { data: acctData, loading: acctLoading } = useQuery(GET_DISTINCT_BANK_ACCOUNT_IDS);
   const accounts: string[] = acctData?.getDistinctBankAccountIds ?? [];
@@ -75,7 +82,8 @@ export function TransactionTabs() {
     sortOrder: sortDirection.toUpperCase(),
     bankAccountId: currentAcct ?? undefined,
     status: activeStatus.toUpperCase(),
-  }), [page, pageSize, serverSortKey, sortDirection, currentAcct, activeStatus]);
+    description: debouncedSearch || undefined,
+  }), [page, pageSize, serverSortKey, sortDirection, currentAcct, activeStatus, debouncedSearch]);
 
   const { data: txData, loading: txLoading, error: txError } = useQuery(GET_ALL_TRANSACTIONS, {
     variables: txVariables,
@@ -132,12 +140,14 @@ export function TransactionTabs() {
     setActiveStatus("Pending");
     setPage(1);
     setSelectedIds(new Set());
+    setSearchTerm("");
   }
 
   function switchStatus(status: Status) {
     setActiveStatus(status);
     setPage(1);
     setSelectedIds(new Set());
+    setSearchTerm("");
   }
 
   function handleSortChange(key: SortKey) {
@@ -154,6 +164,11 @@ export function TransactionTabs() {
   function handlePageChange(p: number) {
     setPage(p);
     setSelectedIds(new Set());
+  }
+
+  function handleSearchChange(value: string) {
+    setSearchTerm(value);
+    setPage(1);
   }
 
   function handlePageSizeChange(size: number) {
@@ -277,8 +292,24 @@ export function TransactionTabs() {
         })}
       </div>
 
-      {/* Bulk edit button — always reserves space */}
-      <div className="flex justify-end mb-2 h-8">
+      {/* Search + bulk edit row */}
+      <div className="flex items-center justify-between mb-2 h-8">
+        {activeStatus === "Pending" ? (
+          <div className="relative w-64">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search description…"
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        ) : (
+          <div />
+        )}
         {selectedIds.size > 1 && (
           <button
             onClick={() => setBulkEditOpen(true)}

@@ -73,6 +73,7 @@ const { handleRequest } = createYoga<{
           sortOrder: SortOrder!
           bankAccountId: String
           status: String
+          description: String
         ): TransactionPage!
         getDistinctBankAccountIds: [String!]!
         getCategoryList: [Category!]!
