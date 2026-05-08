@@ -123,9 +123,9 @@ export function TransactionTabs() {
 
   const transactions: Transaction[] = useMemo(() => {
     return rawItems
-      .filter((tx) => !removedIds.has(tx.id))
+      .filter((tx) => activeStatus !== 'Pending' || !removedIds.has(tx.id))
       .map((tx) => localPatches[tx.id] ? { ...tx, ...localPatches[tx.id] } : tx);
-  }, [rawItems, localPatches, removedIds]);
+  }, [rawItems, localPatches, removedIds, activeStatus]);
 
   function switchTab(acct: string) {
     setActiveAcct(acct);
