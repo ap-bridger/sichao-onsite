@@ -80,7 +80,7 @@ export function TransactionTabs() {
   const { data: txData, loading: txLoading, error: txError } = useQuery(GET_ALL_TRANSACTIONS, {
     variables: txVariables,
     skip: !currentAcct,
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
   });
 
   const { data: vendorData } = useQuery(GET_VENDOR_LIST);
